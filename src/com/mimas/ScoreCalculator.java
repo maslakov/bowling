@@ -1,70 +1,63 @@
 package com.mimas;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Created by Mimas on 29.04.2017.
+ * Object which knows how to calculate total score for frames based on the rules.
+ * It takes into account knocked down pins, scores, supposed to be added due to the frame result type
+ * and pins from following frames.
+ * Assumes we have an object which holds all the data and which can be used as data source
+ * and to which we can write score after it is calculated.
  */
 public class ScoreCalculator {
 
-    private final Frame[] frames;
+    private final List<Frame> frames;
     private final List<Integer> bufferedPins;
-
-    private int playingFrameIndex = 0;
     private int calculatingFrameIndex = 0;
 
-    public ScoreCalculator(int framesCount) {
-        frames = new Frame[framesCount];
-        for (int i = 0; i < framesCount - 1; i++) {
-            frames[i] = new Frame(2);
-        }
-        frames[framesCount-1] = new Frame(3);
+    ScoreCalculator(List<Frame> frames){
         bufferedPins = new ArrayList<>(3);
+        this.frames = frames;
     }
 
-    public List<Frame> getFrames(){
-        return Collections.unmodifiableList(Arrays.asList(frames));
+    private int getFollowersScore(){
+        return bufferedPins.stream().mapToInt(Integer::intValue).sum();
     }
 
-    public void putNext(int pins){
-
-        Frame frameToPutPins = frames[playingFrameIndex];
-
-        while(!frameToPutPins.tryHit(pins)) {
-            if (playingFrameIndex+1 >= frames.length)
-                throw new IllegalStateException("max number of frames achieved");
-            playingFrameIndex++;
-            frameToPutPins = frames[playingFrameIndex];
-        }
+    public void addToCalculation(int pins){
 
         bufferedPins.add(pins);
 
-        Frame calculatedFrame = frames[calculatingFrameIndex];
-        FrameState state = calculatedFrame.getState();
+        while(bufferedPins.size() > 1 && calculatingFrameIndex < frames.size()){
+            Frame calculatedFrame = frames.get(calculatingFrameIndex);
+            FrameState state = calculatedFrame.getState();
+            int currentScore = 0;
 
-        if (state == FrameState.STRIKE){
-            if (bufferedPins.size() == 3){
-                calculatedFrame.setScore(getBufferedScore());
-                calculatingFrameIndex++;
-                bufferedPins.remove(0);
+            if (calculatingFrameIndex >0)
+            {
+                currentScore = frames.get(calculatingFrameIndex-1).getScore();
             }
-        }else if (state == FrameState.SPARE){
-            if (bufferedPins.size() == 3){
-                calculatedFrame.setScore(getBufferedScore());
+
+            if (bufferedPins.size() == state.getBallsCount()+state.getFollowersNumber()){
+                int reward = state.getScore();
+                for (int i = 0; i <state.getBallsCount();i++) {
+                    if (state.getScore() == 0){
+                        // no extra reward - use pins as score for the frame
+                        reward+= bufferedPins.get(0);
+                    }
+                    // delete past items from the buffer: their score already calculated or will be replaced with a const value.
+                    bufferedPins.remove(0);
+                }
+                calculatedFrame.setScore(currentScore + reward + getFollowersScore());
                 calculatingFrameIndex++;
-                bufferedPins.remove(0);
-                bufferedPins.remove(0);
-            }
-        }else if (state == FrameState.REGULAR){
-            if (bufferedPins.size() == 2){
-                calculatedFrame.setScore(getBufferedScore());
-                calculatingFrameIndex++;
-                bufferedPins.clear();
+
+            }else{
+                // need more input
+                break;
             }
         }
+
     }
 
-    private int getBufferedScore(){
-        return bufferedPins.stream().mapToInt(Integer::intValue).sum();
-    }
 }
