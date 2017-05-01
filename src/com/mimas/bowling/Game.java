@@ -1,7 +1,7 @@
-package com.mimas;
+package com.mimas.bowling;
 
 /**
- * Created by Mimas on 30.04.2017.
+ * Game object with capability to play step by step or replay whole game based on balls records.
  */
 public class Game {
     private final GameController controller;
@@ -15,7 +15,7 @@ public class Game {
      * @param framesCount - number of frames in bowling game
      * @return a game object
      */
-    public Game startNewGame(int framesCount){
+    public static Game startNewGame(int framesCount){
         return new Game(framesCount);
     }
 
@@ -25,9 +25,10 @@ public class Game {
      * @return - the value indicating if the game finished
      */
     public boolean tryRunTheBall(int pinsHit){
-        try {
+        try
+        {
             controller.runNextBall(pinsHit);
-        } catch (IllegalStateException e) {
+        } catch (Exception e) {
             // game over
             return false;
         }
@@ -35,49 +36,47 @@ public class Game {
     }
 
     /**
+     * Returns the results of this game.
+     * @return array with records about pins knocked down and score
+     */
+    public FrameResult[] getResults(){
+        return controller.getResults();
+    }
+
+    /**
      * Builds results score table for the game defined in text format with X and / signs
      * @param gameProtocol - in a text format: e.g. 1 4 6 / 5 / X 0 1...
-     * @return
+     * @return array with records about pins knocked down and score
      */
-    public static int[] replayGame(String[] gameProtocol){
-        //validate string
-        int framesCount = getFramesNumber(gameProtocol);
+    public static FrameResult[] replayGame(String[] gameProtocol){
 
-        int[] gamePins = convertProtocol(gameProtocol);
+        int[] gamePins = GameHelper.convertProtocol(gameProtocol);
+        int framesCount = GameHelper.validateAndGetFramesNumber(gamePins);
+
         GameController controller = new GameController(framesCount);
         for (int pins:gamePins) {
             controller.runNextBall(pins);
         }
 
-        return null;
+        return controller.getResults();
     }
 
-    private static int[] convertProtocol(String[] gameProtocol) {
-        return new int[0];
-    }
 
     /**
      * Builds results score table for the game defined in numeric format.
      * Every number in input array represent the number of pins knocked down by the ball
      * @param gamePins - in a text format: e.g. 1 4 6 4 5 5 10 0 1...
-     * @return
+     * @return array with records about pins knocked down and score
      */
-    public static int[] replayGame(int[] gamePins){
-        // validate input
-        int framesCount = getFramesNumber(gamePins);
+    public static FrameResult[] replayGame(int[] gamePins){
+
+        int framesCount = GameHelper.validateAndGetFramesNumber(gamePins);
 
         GameController controller = new GameController(framesCount);
         for (int pins:gamePins) {
             controller.runNextBall(pins);
         }
-        return null;
+        return controller.getResults();
     }
 
-    private static int getFramesNumber(int[] gamePins){
-        return 0;
-    }
-
-    private static int getFramesNumber(String[] gameProtocol){
-        return 0;
-    }
 }

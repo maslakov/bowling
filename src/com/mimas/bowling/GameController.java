@@ -1,4 +1,4 @@
-package com.mimas;
+package com.mimas.bowling;
 
 import java.util.*;
 
@@ -13,36 +13,41 @@ public class GameController {
 
     public GameController(ScoreTable table) {
         this.table = table;
-        calculator = new ScoreCalculator(table.getFrames());
+        calculator = new ScoreCalculator(table);
     }
 
     public GameController(int framesCount) {
         table = new ScoreTable(framesCount);
-        calculator = new ScoreCalculator(table.getFrames());
+        calculator = new ScoreCalculator(table);
     }
 
     public int[] getScores(){
-        int size = table.getFrames().size();
+        int size = table.getSize();
         int[] scores = new int[size];
         for (int i=0 ; i < size; i++){
-            scores[i] = table.getFrames().get(i).getScore();
+            scores[i] = table.getFrameResults().get(i).getScore();
         }
         return scores;
     }
 
-    public void runNextBall(int pins){
-        List<Frame> frames = table.getFrames();
-        Frame frameToPutPins = frames.get(playingFrameIndex);
-        while(!frameToPutPins.tryHit(pins)) {
-            if (playingFrameIndex+1 >= frames.size())
-                throw new IllegalStateException("max number of frames achieved");
-            playingFrameIndex++;
-            frameToPutPins = frames.get(playingFrameIndex);
-        }
-        calculator.addToCalculation(pins);
+    public FrameResult[] getResults(){
+        return table.getFrameResults().toArray(new FrameResult[0]);
     }
 
-    public int[] Replay(String[] balls){
-        return null;
+    /**
+     * Stores results of one game attempt in appropriate frame.
+     * @param pins - knocked downs pins number
+     */
+    public void runNextBall(int pins){
+        if (pins> GameHelper.MAX_FRAME_PINS || pins<0)
+        {
+            throw new IllegalArgumentException("must be a number between 0 and 10");
+        }
+        while(!table.trySavePinsInFrame(playingFrameIndex,pins)) {
+            if (playingFrameIndex+1 >= table.getSize())
+                throw new IllegalStateException("max number of frames achieved");
+            playingFrameIndex++;
+        }
+        calculator.addToCalculation(pins);
     }
 }
